@@ -50,13 +50,30 @@ print("""
 
 def create_faculty_table():
     """
-    Create a detailed view of the faculty table with search capability
+    Create a view of the faculty table with search and sort capability
     """
     # Check if there's a search parameter in the URL
     import os
-    search_term = os.environ.get('QUERY_STRING', '').replace('search=', '').strip()
+    query_string = os.environ.get('QUERY_STRING', '')
+    
+    # Parse parameters
+    params = {}
+    for param in query_string.split('&'):
+        if '=' in param:
+            key, value = param.split('=')
+            params[key] = value
+    
+    # Extract search term and sorting parameters
+    search_term = params.get('search', '').strip()
+    sort_by = params.get('sort_by', '').strip()
+    sort_order = params.get('sort_order', 'ASC').strip().upper()
 
     try:
+        # Validate sort columns
+        valid_sort_columns = ['last', 'rank', 'first', 'id']
+        if sort_by and sort_by not in valid_sort_columns:
+            sort_by = None
+
         # Prepare the query based on whether there's a search term
         if search_term:
             # Search across all columns
@@ -76,23 +93,52 @@ def create_faculty_table():
                 cast(remarks as text) ILIKE %s OR
                 cast(currently_employed as text) ILIKE %s
             """
+            # Add sorting if specified
+            if sort_by:
+                query += f" ORDER BY {sort_by} {sort_order}"
+            
             search_param = f'%{search_term}%'
-            cursor.execute(query, (search_param, search_param, search_param, search_param, search_param, search_param, search_param, search_param, search_param, search_param, search_param, search_param))
+            cursor.execute(query, 
+                (search_param,)*12
+            )
             print(f"<h2>Search Results for '{search_term}'</h2>")
         else:
             # If no search term, fetch all faculty
-            cursor.execute("SELECT * FROM dep_faculty")
+            query = "SELECT * FROM dep_faculty"
+            
+            # Add sorting if specified
+            if sort_by:
+                query += f" ORDER BY {sort_by} {sort_order}"
+            
+            cursor.execute(query)
             print("<h2>Faculty Directory</h2>")
 
-        # Add search form
+        # Add search and sort form
         print("""
         <div class="search-container">
             <form method="get" action="faculty.py">
                 <input type="text" name="search" placeholder="Search faculty..." value="{0}">
-                <input type="submit" value="Search">
+                <select name="sort_by">
+                    <option value="">Sort By...</option>
+                    <option value="last" {1}>Last Name</option>
+                    <option value="rank" {2}>Rank</option>
+                    <option value="first" {3}>First Name</option>
+                </select>
+                <select name="sort_order">
+                    <option value="ASC" {4}>Ascending</option>
+                    <option value="DESC" {5}>Descending</option>
+                </select>
+                <input type="submit" value="Search/Sort">
             </form>
         </div>
-        """.format(search_term))
+        """.format(
+            search_term or '', 
+            'selected' if sort_by == 'last' else '',
+            'selected' if sort_by == 'rank' else '',
+            'selected' if sort_by == 'first' else '',
+            'selected' if sort_order == 'ASC' else '',
+            'selected' if sort_order == 'DESC' else ''
+        ))
 
         # Fetch results
         results = cursor.fetchall()
