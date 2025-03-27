@@ -10,41 +10,101 @@ print("Content-type: text/html\n\n")
 print("""
 <html>
 <head>
-    <title>Faculty Directory</title>
+    <title>ECU CS Faculty Directory</title>
     <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
         .navbar {
             overflow: hidden;
-            background-color: #333;
-            margin-bottom: 20px;
-        }
-        .navbar a {
-            float: left;
-            display: block;
+            background-color: #1E90FF;  /* Dodger Blue */
             color: white;
-            text-align: center;
-            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+        }
+        .navbar-brand {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .navbar-links a {
+            color: white;
             text-decoration: none;
+            margin-left: 15px;
+            transition: color 0.3s ease;
         }
-        .navbar a:hover {
-            background-color: #ddd;
-            color: black;
+        .navbar-links a:hover {
+            color: #e0e0e0;
         }
-        table, th, td {
-            border: 1px solid black;
-            border-collapse: collapse;
-            padding: 5px;
-            margin-bottom: 20px;
+        .content {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
         }
         .search-container {
+            background-color: white;
+            padding: 15px;
+            border-radius: 5px;
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
             margin-bottom: 20px;
             text-align: center;
+        }
+        .search-container input, 
+        .search-container select {
+            margin: 0 10px;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+            background-color: white;
+        }
+        table th {
+            background-color: #f2f2f2;
+            color: #333;
+            font-weight: bold;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #ddd;
+        }
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        table tr:hover {
+            background-color: #f5f5f5;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #1E90FF;
+            padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        .table-container {
+            overflow-x: auto;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
     <div class="navbar">
-        <a href="csdashboard.py">Home</a>
-        <a href="faculty.py">Faculty</a>
+        <div class="navbar-brand">ECU CS Dashboard</div>
+        <div class="navbar-links">
+            <a href="csdashboard.py">Home</a>
+            <a href="faculty.py">Faculty</a>
+        </div>
     </div>
 """)
 
@@ -53,7 +113,6 @@ def create_faculty_table():
     Create a view of the faculty table with search and sort capability
     """
     # Check if there's a search parameter in the URL
-    import os
     query_string = os.environ.get('QUERY_STRING', '')
     
     # Parse parameters
@@ -101,7 +160,7 @@ def create_faculty_table():
             cursor.execute(query, 
                 (search_param,)*12
             )
-            print(f"<h2>Search Results for '{search_term}'</h2>")
+            print(f"<div class='content'><h2>Search Results for '{search_term}'</h2>")
         else:
             # If no search term, fetch all faculty
             query = "SELECT * FROM dep_faculty"
@@ -111,7 +170,7 @@ def create_faculty_table():
                 query += f" ORDER BY {sort_by} {sort_order}"
             
             cursor.execute(query)
-            print("<h2>Faculty Directory</h2>")
+            print("<div class='content'><h2>Faculty Directory</h2>")
 
         # Add search and sort form
         print("""
@@ -144,13 +203,14 @@ def create_faculty_table():
         results = cursor.fetchall()
 
         # Print table
+        print("<div class='table-container'>")
         print("<table>")
         
         # Print headers
         if results:
             print("<tr>")
             for col in cursor.description:
-                print(f"<th>{col.name}</th>")
+                print(f"<th>{col.name.replace('_', ' ').title()}</th>")
             print("</tr>")
 
             # Print rows
@@ -164,6 +224,8 @@ def create_faculty_table():
             print(f"<tr><td colspan='{len(cursor.description)}'>No faculty members found.</td></tr>")
         
         print("</table>")
+        print("</div>")
+        print("</div>")
 
     except Exception as e:
         print(f"<p>Error: {e}</p>")
