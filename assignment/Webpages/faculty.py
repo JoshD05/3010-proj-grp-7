@@ -20,7 +20,7 @@ print("""
         }
         .navbar {
             overflow: hidden;
-            background-color: #1E90FF;  /* Dodger Blue */
+            background-color: #1E90FF;
             color: white;
             display: flex;
             justify-content: space-between;
@@ -44,21 +44,6 @@ print("""
             max-width: 1200px;
             margin: 20px auto;
             padding: 0 20px;
-        }
-        .search-container {
-            background-color: white;
-            padding: 15px;
-            border-radius: 5px;
-            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            text-align: center;
-        }
-        .search-container input, 
-        .search-container select {
-            margin: 0 10px;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
         }
         table {
             width: 100%;
@@ -96,11 +81,15 @@ print("""
             overflow-x: auto;
             border-radius: 5px;
         }
+        .search-container {
+            margin-bottom: 20px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="navbar">
-        <div class="navbar-brand">ECU CS Dashboard</div>
+        <div class="navbar-brand">ECU CS Faculty Directory</div>
         <div class="navbar-links">
             <a href="csdashboard.py">Home</a>
             <a href="faculty.py">Faculty</a>
@@ -113,6 +102,7 @@ def create_faculty_table():
     Create a view of the faculty table with search and sort capability
     """
     # Check if there's a search parameter in the URL
+    import os
     query_string = os.environ.get('QUERY_STRING', '')
     
     # Parse parameters
@@ -160,7 +150,7 @@ def create_faculty_table():
             cursor.execute(query, 
                 (search_param,)*12
             )
-            print(f"<div class='content'><h2>Search Results for '{search_term}'</h2>")
+            print(f"<h2>Search Results for '{search_term}'</h2>")
         else:
             # If no search term, fetch all faculty
             query = "SELECT * FROM dep_faculty"
@@ -170,7 +160,7 @@ def create_faculty_table():
                 query += f" ORDER BY {sort_by} {sort_order}"
             
             cursor.execute(query)
-            print("<div class='content'><h2>Faculty Directory</h2>")
+            print("<h2>Faculty Directory</h2>")
 
         # Add search and sort form
         print("""
@@ -203,14 +193,13 @@ def create_faculty_table():
         results = cursor.fetchall()
 
         # Print table
-        print("<div class='table-container'>")
         print("<table>")
         
         # Print headers
         if results:
             print("<tr>")
             for col in cursor.description:
-                print(f"<th>{col.name.replace('_', ' ').title()}</th>")
+                print(f"<th>{col.name}</th>")
             print("</tr>")
 
             # Print rows
@@ -224,8 +213,6 @@ def create_faculty_table():
             print(f"<tr><td colspan='{len(cursor.description)}'>No faculty members found.</td></tr>")
         
         print("</table>")
-        print("</div>")
-        print("</div>")
 
     except Exception as e:
         print(f"<p>Error: {e}</p>")
