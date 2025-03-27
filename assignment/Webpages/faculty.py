@@ -64,6 +64,7 @@ def create_faculty_table():
             SELECT * FROM dep_faculty 
             WHERE 
                 cast(id as text) ILIKE %s OR 
+                cast(honorific as text) ILIKE %s OR
                 cast(first as text) ILIKE %s OR 
                 cast(last as text) ILIKE %s OR
                 cast(email as text) ILIKE %s OR 
@@ -71,7 +72,7 @@ def create_faculty_table():
                 cast(research_interests as text) ILIKE %s
             """
             search_param = f'%{search_term}%'
-            cursor.execute(query, (search_param, search_param, search_param, search_param, search_param))
+            cursor.execute(query, (search_param, search_param, search_param, search_param, search_param, search_param, search_param))
             print(f"<h2>Search Results for '{search_term}'</h2>")
         else:
             # If no search term, fetch all faculty
