@@ -64,10 +64,11 @@ def create_faculty_table():
             SELECT * FROM dep_faculty 
             WHERE 
                 cast(id as text) ILIKE %s OR 
-                cast(name as text) ILIKE %s OR 
+                cast(first as text) ILIKE %s OR 
+                cast(last as text) ILIKE %s OR
                 cast(email as text) ILIKE %s OR 
                 cast(rank as text) ILIKE %s OR 
-                cast(dept as text) ILIKE %s
+                cast(research_interests as text) ILIKE %s
             """
             search_param = f'%{search_term}%'
             cursor.execute(query, (search_param, search_param, search_param, search_param, search_param))
