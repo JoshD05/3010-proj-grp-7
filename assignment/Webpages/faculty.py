@@ -1,37 +1,19 @@
 #!/usr/bin/python3
 import psycopg2
 import psycopg2.extras
-import cgi
-import cgitb
-cgitb.enable()
 
 class Faculty:
-    def __init__(self, id, first_name, last_name, email, title, department, phone, office, research_interests):
-        self.id = id
-        self.first_name = first_name
-        self.last_name = last_name
-        self.email = email
-        self.title = title
-        self.department = department
-        self.phone = phone
-        self.office = office
-        self.research_interests = research_interests
+    def __init__(self, *args):
+        """
+        Initialize with a variable number of arguments based on the actual database columns
+        """
+        self.attributes = list(args)
 
     def to_html_row(self):
         """
-        Generate an HTML table row for the faculty member
+        Generate an HTML table row with all attributes
         """
-        return f"""
-        <tr>
-            <td>{self.first_name} {self.last_name}</td>
-            <td>{self.title}</td>
-            <td>{self.department}</td>
-            <td>{self.email}</td>
-            <td>{self.phone}</td>
-            <td>{self.office}</td>
-            <td>{self.research_interests or 'N/A'}</td>
-        </tr>
-        """
+        return "<tr>" + "".join(f"<td>{str(attr) if attr is not None else 'N/A'}</td>" for attr in self.attributes) + "</tr>"
 
 def connect_to_database():
     """
@@ -53,80 +35,92 @@ def connect_to_database():
         print("</body></html>")
         return None
 
-def get_all_faculty():
+def get_table_columns(table_name):
     """
-    Retrieve all faculty members from the database
+    Retrieve column names for a specific table
     """
     conn = connect_to_database()
     if not conn:
         return []
 
     try:
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        cursor.execute("""
-            SELECT id, first_name, last_name, email, title, 
-                   department, phone, office, research_interests 
-            FROM faculty_standard
-        """)
-        faculty_list = []
-        for row in cursor.fetchall():
-            faculty_list.append(Faculty(
-                row['id'], row['first_name'], row['last_name'], 
-                row['email'], row['title'], row['department'], 
-                row['phone'], row['office'], row['research_interests']
-            ))
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT * FROM {table_name} LIMIT 0;")
+        column_names = [desc.name for desc in cursor.description]
+        cursor.close()
+        conn.close()
+        return column_names
+    except (Exception, psycopg2.Error) as error:
+        print("Content-type: text/html\n\n")
+        print("<html><body>")
+        print(f"<h1>Database Column Error for {table_name}</h1>")
+        print(f"<p>Error: {error}</p>")
+        print("</body></html>")
+        return []
+
+def get_faculty_data(table_name='dep_faculty'):
+    """
+    Retrieve faculty data from the specified table
+    """
+    conn = connect_to_database()
+    if not conn:
+        return [], []
+
+    try:
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT * FROM {table_name};")
+        column_names = [desc.name for desc in cursor.description]
+        results = cursor.fetchall()
+        
+        faculty_list = [Faculty(*row) for row in results]
         
         cursor.close()
         conn.close()
-        return faculty_list
+        return column_names, faculty_list
     except (Exception, psycopg2.Error) as error:
         print("Content-type: text/html\n\n")
         print("<html><body>")
         print(f"<h1>Database Query Error</h1>")
         print(f"<p>Error: {error}</p>")
         print("</body></html>")
-        return []
+        return [], []
 
-def search_faculty(search_term):
+def search_faculty(table_name, search_term):
     """
     Search for faculty members based on a search term
     """
     conn = connect_to_database()
     if not conn:
-        return []
+        return [], []
 
     try:
-        cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
-        # Search across multiple fields
-        cursor.execute("""
-            SELECT id, first_name, last_name, email, title, 
-                   department, phone, office, research_interests 
-            FROM faculty_standard
-            WHERE lower(first_name) LIKE lower(%s) OR 
-                  lower(last_name) LIKE lower(%s) OR 
-                  lower(department) LIKE lower(%s) OR 
-                  lower(research_interests) LIKE lower(%s)
-        """, (f'%{search_term}%', f'%{search_term}%', 
-               f'%{search_term}%', f'%{search_term}%'))
+        cursor = conn.cursor()
+        cursor.execute(f"SELECT * FROM {table_name} LIMIT 0;")
+        column_names = [desc.name for desc in cursor.description]
         
-        faculty_list = []
-        for row in cursor.fetchall():
-            faculty_list.append(Faculty(
-                row['id'], row['first_name'], row['last_name'], 
-                row['email'], row['title'], row['department'], 
-                row['phone'], row['office'], row['research_interests']
-            ))
+        # dynamic search condition
+        search_conditions = " OR ".join([f"CAST({col} AS TEXT) ILIKE %s" for col in column_names])
+        search_params = [f"%{search_term}%"] * len(column_names)
+        
+        # Execute search query
+        cursor.execute(f"""
+            SELECT * FROM {table_name}
+            WHERE {search_conditions}
+        """, search_params)
+        
+        results = cursor.fetchall()
+        faculty_list = [Faculty(*row) for row in results]
         
         cursor.close()
         conn.close()
-        return faculty_list
+        return column_names, faculty_list
     except (Exception, psycopg2.Error) as error:
         print("Content-type: text/html\n\n")
         print("<html><body>")
         print(f"<h1>Database Search Error</h1>")
         print(f"<p>Error: {error}</p>")
         print("</body></html>")
-        return []
+        return [], []
 
 def print_html_header():
     """
@@ -180,7 +174,7 @@ def print_html_header():
         </div>
     """)
 
-def print_faculty_table(faculty_list):
+def print_faculty_table(column_names, faculty_list):
     """
     Print the faculty table 
     """
@@ -195,20 +189,19 @@ def print_faculty_table(faculty_list):
     <table>
         <thead>
             <tr>
-                <th>Name</th>
-                <th>Title</th>
-                <th>Department</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Office</th>
-                <th>Research Interests</th>
+    """)
+    
+    for col in column_names:
+        print(f"<th>{col}</th>")
+    
+    print("""
             </tr>
         </thead>
         <tbody>
     """)
     
     if not faculty_list:
-        print("<tr><td colspan='7'>No faculty members found.</td></tr>")
+        print(f"<tr><td colspan='{len(column_names)}'>No faculty members found.</td></tr>")
     else:
         for faculty in faculty_list:
             print(faculty.to_html_row())
@@ -222,29 +215,24 @@ def main():
     """
     Main function to handle faculty page display and search
     """
-    # Parse form data
     form = cgi.FieldStorage()
     
-    # Print HTML header
     print_html_header()
     
-    # Check if there's a search term
+    table_name = 'dep_faculty'
+    
     search_term = form.getvalue('search')
     
     if search_term:
-        # Perform search
-        faculty_list = search_faculty(search_term)
+        column_names, faculty_list = search_faculty(table_name, search_term)
         print(f"<h2>Search Results for '{search_term}'</h2>")
     else:
-        # Get all faculty if no search term
-        faculty_list = get_all_faculty()
+        column_names, faculty_list = get_faculty_data(table_name)
         print("<h2>Faculty Directory</h2>")
     
-    # Print faculty table
-    print_faculty_table(faculty_list)
+    print_faculty_table(column_names, faculty_list)
     
     print("</body></html>")
 
-# Run the main function
 if __name__ == "__main__":
     main()
