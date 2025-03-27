@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import psycopg2
 import psycopg2.extras
+import os
 
 # Database connection
 conn = psycopg2.connect("host=192.168.56.30 dbname=dashboard user=webuser1 password=student")
@@ -52,12 +53,8 @@ def create_faculty_table():
     """
     Create a detailed view of the faculty table with search capability
     """
-    # Extract search term from QUERY_STRING
-    search_term = ""
-    if "QUERY_STRING" in globals():
-        query_parts = globals()["QUERY_STRING"].split('=')
-        if len(query_parts) > 1 and query_parts[0] == 'search':
-            search_term = query_parts[1]
+    # Check if there's a search parameter in the URL
+    search_term = os.environ.get('QUERY_STRING', '').replace('search=', '').strip()
 
     try:
         # First, get column names dynamically
@@ -70,7 +67,7 @@ def create_faculty_table():
             search_conditions = []
             search_params = []
             for col in column_names:
-                search_conditions.append(f"CAST({col} AS TEXT) LIKE %s")
+                search_conditions.append(f"CAST({col} AS TEXT) ILIKE %s")
                 search_params.append(f'%{search_term}%')
             
             search_query = " OR ".join(search_conditions)
