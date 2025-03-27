@@ -10,53 +10,86 @@ print("Content-type: text/html\n\n")
 print("""
 <html>
 <head>
-    <title>Database Tables</title>
+    <title>ECU CS Dashboard</title>
     <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
         .navbar {
             overflow: hidden;
-            background-color: #333;
-            margin-bottom: 20px;
-        }
-        .navbar a {
-            float: left;
-            display: block;
+            background-color: #1E90FF;  /* Dodger Blue */
             color: white;
-            text-align: center;
-            padding: 14px 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 20px;
+        }
+        .navbar-brand {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        .navbar-links a {
+            color: white;
             text-decoration: none;
+            margin-left: 15px;
+            transition: color 0.3s ease;
         }
-        .navbar a:hover {
-            background-color: #ddd;
-            color: black;
+        .navbar-links a:hover {
+            color: #e0e0e0;
         }
-        table, th, td {
-            border: 1px solid black;
-            border-collapse: collapse;
-            padding: 5px;
-            margin-bottom: 20px;
-        }
-        .table-container {
-            margin: 0 auto;
-            max-width: 90%;
-            overflow-x: auto;
-        }
-        body {
-            font-family: Arial, sans-serif;
+        .content {
             max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+            background-color: white;
+        }
+        table th {
+            background-color: #f2f2f2;
+            color: #333;
+            font-weight: bold;
+            padding: 12px;
+            text-align: left;
+            border-bottom: 2px solid #ddd;
+        }
+        table td {
+            padding: 12px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        table tr:hover {
+            background-color: #f5f5f5;
         }
         h2 {
             color: #333;
-            border-bottom: 2px solid #333;
+            border-bottom: 2px solid #1E90FF;
             padding-bottom: 10px;
+            margin-top: 30px;
+        }
+        .table-container {
+            overflow-x: auto;
+            border-radius: 5px;
         }
     </style>
 </head>
 <body>
     <div class="navbar">
-        <a href="csdashboard.py">Home</a>
-        <a href="faculty.py">Faculty</a>
+        <div class="navbar-brand">ECU CS Dashboard</div>
+        <div class="navbar-links">
+            <a href="csdashboard.py">Home</a>
+            <a href="faculty.py">Faculty</a>
+        </div>
     </div>
 """)
 
