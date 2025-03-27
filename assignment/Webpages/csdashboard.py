@@ -35,6 +35,22 @@ print("""
             padding: 5px;
             margin-bottom: 20px;
         }
+        .table-container {
+            margin: 0 auto;
+            max-width: 90%;
+            overflow-x: auto;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #333;
+            padding-bottom: 10px;
+        }
     </style>
 </head>
 <body>
@@ -51,23 +67,27 @@ def create_table(table_name):
     cursor.execute(f"SELECT * FROM {table_name};")
     results = cursor.fetchall()
     if results:
-        print(f"<h2>{table_name}</h2>")
+        print(f"<h2>{table_name.replace('_', ' ').title()}</h2>")
+        print("<div class='table-container'>")
         print("<table>")
         print("<tr>")
         for col in cursor.description:
-            print(f"<th>{col.name}</th>")
+            print(f"<th>{col.name.replace('_', ' ').title()}</th>")
         print("</tr>")
         for row in results:
             print("<tr>")
             for value in row:
-                print(f"<td>{value}</td>")
+                print(f"<td>{value if value is not None else 'N/A'}</td>")
             print("</tr>")
         print("</table>")
+        print("</div>")
     else:
         print(f"<p>No data found in {table_name}</p>")
 
+print("<div class='content'>")
 for table in tables:
     create_table(table)
+print("</div>")
 
 # Close connection
 cursor.close()
