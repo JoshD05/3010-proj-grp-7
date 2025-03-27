@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import psycopg2
 import psycopg2.extras
+import os
 
 # Database connection
 conn = psycopg2.connect("host=192.168.56.30 dbname=dashboard user=webuser1 password=student")
@@ -53,24 +54,26 @@ def create_faculty_table():
     Create a detailed view of the faculty table with search capability
     """
     # Check if there's a search parameter in the URL
-    import os
     search_term = os.environ.get('QUERY_STRING', '').replace('search=', '').strip()
 
     try:
+        # First, get column names dynamically
+        cursor.execute("SELECT * FROM dep_faculty LIMIT 0")
+        column_names = [desc.name for desc in cursor.description]
+
         # Prepare the query based on whether there's a search term
         if search_term:
-            # Search across all columns
-            query = """
-            SELECT * FROM dep_faculty 
-            WHERE 
-                cast(id as text) ILIKE %s OR 
-                cast(name as text) ILIKE %s OR 
-                cast(email as text) ILIKE %s OR 
-                cast(rank as text) ILIKE %s OR 
-                cast(dept as text) ILIKE %s
-            """
-            search_param = f'%{search_term}%'
-            cursor.execute(query, (search_param, search_param, search_param, search_param, search_param))
+            # Dynamically create search conditions for all text/varchar columns
+            search_conditions = []
+            search_params = []
+            for col in column_names:
+                search_conditions.append(f"CAST({col} AS TEXT) ILIKE %s")
+                search_params.append(f'%{search_term}%')
+            
+            search_query = " OR ".join(search_conditions)
+            query = f"SELECT * FROM dep_faculty WHERE {search_query}"
+            
+            cursor.execute(query, search_params)
             print(f"<h2>Search Results for '{search_term}'</h2>")
         else:
             # If no search term, fetch all faculty
@@ -96,8 +99,8 @@ def create_faculty_table():
         # Print headers
         if results:
             print("<tr>")
-            for col in cursor.description:
-                print(f"<th>{col.name}</th>")
+            for col in column_names:
+                print(f"<th>{col}</th>")
             print("</tr>")
 
             # Print rows
@@ -108,7 +111,7 @@ def create_faculty_table():
                 print("</tr>")
         else:
             # If no results found
-            print(f"<tr><td colspan='{len(cursor.description)}'>No faculty members found.</td></tr>")
+            print(f"<tr><td colspan='{len(column_names)}'>No faculty members found.</td></tr>")
         
         print("</table>")
 
