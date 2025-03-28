@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import psycopg2
+import psycopg2.extras
 
 conn = psycopg2.connect("host=192.168.56.30 dbname=dashboard user=webuser1 password=student")
 cursor = conn.cursor()
@@ -102,17 +103,11 @@ def create_courses_table():
     Create a view of the courses table
     """
     try:
-        query = "SELECT prefix, number, title, GU, CH, frequency, active, description FROM dep_courses"
+        query = "SELECT prefix ||' '|| number AS number, title, GU, CH, frequency, active, description FROM dep_courses"
         cursor.execute(query)
         
         print("<div class='content'>")
         print("<h2>Course Info</h2>")
-        
-        print("""
-        <div class="column-visibility">
-            Column visibility
-        </div>
-        """)
         
         print("<table>")
         
