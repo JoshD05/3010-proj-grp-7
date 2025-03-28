@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 import psycopg2
 import psycopg2.extras
+import os
 
-# Database connection
 conn = psycopg2.connect("host=192.168.56.30 dbname=dashboard user=webuser1 password=student")
 cursor = conn.cursor()
 
@@ -23,7 +23,7 @@ print("""
             background-color: #1E90FF;
             color: white;
             display: flex;
-            justify-content: space-between;
+            justify-content: flex-start;
             align-items: center;
             padding: 10px 20px;
         }
@@ -93,6 +93,8 @@ print("""
         <div class="navbar-links">
             <a href="csdashboard.py">Home</a>
             <a href="faculty.py">Faculty</a>
+            <a href="courses.py">Courses</a>
+            <a href="fte.py">FTE</a>
         </div>
     </div>
 """)
@@ -101,28 +103,19 @@ def create_faculty_table():
     """
     Create a view of the faculty table with search and sort capability
     """
-    search_term = ''
-    sort_by = ''
-    sort_order = 'ASC'
-
-    query_string = ''
-    query_string = query_string.replace('%20', ' ')
-
-    search_params = {}
-    if '&' in query_string:
-        params = query_string.split('&')
-        for param in params:
-            if '=' in param:
-                key, value = param.split('=')
-                search_params[key] = value
-
-    # search parameters
-    search_term = search_params.get('search', '').strip()
-    sort_by = search_params.get('sort_by', '').strip()
-    sort_order = search_params.get('sort_order', 'ASC').strip().upper()
+    query_string = os.environ.get('QUERY_STRING', '')
+    
+    params = {}
+    for param in query_string.split('&'):
+        if '=' in param:
+            key, value = param.split('=')
+            params[key] = value
+    
+    search_term = params.get('search', '').strip()
+    sort_by = params.get('sort_by', '').strip()
+    sort_order = params.get('sort_order', 'ASC').strip().upper()
 
     try:
-        # sort columns
         valid_sort_columns = ['last', 'rank', 'first', 'id']
         if sort_by and sort_by not in valid_sort_columns:
             sort_by = None
@@ -187,28 +180,31 @@ def create_faculty_table():
             'selected' if sort_order == 'DESC' else ''
         ))
 
+        # results
         results = cursor.fetchall()
         print("<table>")
         
+        # headers
         if results:
             print("<tr>")
             for col in cursor.description:
                 print(f"<th>{col.name}</th>")
             print("</tr>")
 
+            # rows
             for row in results:
                 print("<tr>")
                 for value in row:
                     print(f"<td>{value if value is not None else 'N/A'}</td>")
                 print("</tr>")
         else:
+            # no results found
             print(f"<tr><td colspan='{len(cursor.description)}'>No faculty members found.</td></tr>")
         
         print("</table>")
 
     except Exception as e:
         print(f"<p>Error: {e}</p>")
-
 create_faculty_table()
 
 cursor.close()
