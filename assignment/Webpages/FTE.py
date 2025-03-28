@@ -97,22 +97,23 @@ print("""
 
 def create_fte_table():
     try:
+        # Modify the query to explicitly specify table names
         query = """
         SELECT 
-            f.honorific, 
-            f.first, 
-            f.last, 
-            cs.year, 
-            cs.semester,
-            cs.course_code,
-            cs.ch,
-            cs.enrollment
+            dep_faculty.honorific, 
+            dep_faculty.first, 
+            dep_faculty.last, 
+            dep_course_sched.year, 
+            dep_course_sched.semester,
+            dep_course_sched.course_code,
+            dep_course_sched.ch,
+            dep_course_sched.enrollment
         FROM 
-            dep_faculty f
-        JOIN 
-            dep_course_sched cs ON f.id = cs.instructor
+            dep_faculty, dep_course_sched
+        WHERE 
+            dep_faculty.id = dep_course_sched.instructor
         ORDER BY 
-            f.last, f.first, cs.year, cs.semester
+            dep_faculty.last, dep_faculty.first, dep_course_sched.year, dep_course_sched.semester
         """
         
         cursor.execute(query)
