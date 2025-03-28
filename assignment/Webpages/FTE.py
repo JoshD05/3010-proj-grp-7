@@ -97,17 +97,13 @@ print("""
 
 def create_fte_table():
     try:
-        # Modify the query to explicitly specify table names
         query = """
         SELECT 
             dep_faculty.honorific, 
             dep_faculty.first, 
             dep_faculty.last, 
             dep_course_sched.year, 
-            dep_course_sched.semester,
-            dep_course_sched.course_code,
-            dep_course_sched.ch,
-            dep_course_sched.enrollment
+            dep_course_sched.semester
         FROM 
             dep_faculty, dep_course_sched
         WHERE 
@@ -119,47 +115,24 @@ def create_fte_table():
         cursor.execute(query)
         results = cursor.fetchall()
 
-        print("<h2>Faculty FTE Calculations</h2>")
+        print("<h2>Faculty Course Assignments</h2>")
         print("<table>")
         print("<tr>")
         print("<th>Name</th>")
         print("<th>Year</th>")
         print("<th>Semester</th>")
-        print("<th>Course Code</th>")
-        print("<th>CH</th>")
-        print("<th>Enrollment</th>")
-        print("<th>FTE</th>")
         print("</tr>")
 
         for row in results:
-            # Unpack the row
-            honorific, first, last, year, semester, course_code, ch, enrollment = row
+            honorific, first, last, year, semester = row
 
             # Combine name 
             name = f"{honorific} {first} {last}".strip()
-
-            # Default FTE divisor
-            fte_divisor = 186.23
-
-            # Determine FTE divisor based on course code
-            if course_code.startswith('CSCI'):
-                fte_divisor = 186.23 if 'G' in course_code else 406.24
-            elif course_code.startswith('SENG'):
-                fte_divisor = 90.17 if 'G' in course_code else 232.25
-            elif course_code.startswith('DASC'):
-                fte_divisor = 186.23
-
-            # Calculate FTE
-            fte = (ch * enrollment) / fte_divisor
 
             print("<tr>")
             print(f"<td>{name}</td>")
             print(f"<td>{year}</td>")
             print(f"<td>{semester}</td>")
-            print(f"<td>{course_code}</td>")
-            print(f"<td>{ch}</td>")
-            print(f"<td>{enrollment}</td>")
-            print(f"<td>{fte:.2f}</td>")
             print("</tr>")
 
         print("</table>")
