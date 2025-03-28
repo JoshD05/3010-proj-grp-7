@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 import psycopg2
 import psycopg2.extras
+import os
 
-# Database connection
 conn = psycopg2.connect("host=192.168.56.30 dbname=dashboard user=webuser1 password=student")
 cursor = conn.cursor()
 
@@ -10,7 +10,7 @@ print("Content-type: text/html\n\n")
 print("""
 <html>
 <head>
-    <title>ECU CS FTE Dashboard</title>
+    <title>ECU CS Faculty FTE</title>
     <style>
         body {
             font-family: 'Arial', sans-serif;
@@ -81,15 +81,11 @@ print("""
             overflow-x: auto;
             border-radius: 5px;
         }
-        .search-container {
-            margin-bottom: 20px;
-            text-align: center;
-        }
     </style>
 </head>
 <body>
     <div class="navbar">
-        <div class="navbar-brand">ECU CS FTE Dashboard</div>
+        <div class="navbar-brand">ECU CS Faculty FTE</div>
         <div class="navbar-links">
             <a href="csdashboard.py">Home</a>
             <a href="faculty.py">Faculty</a>
@@ -101,40 +97,70 @@ print("""
 
 def create_fte_table():
     try:
-        # Fetch all FTE records
         query = """
         SELECT 
-            faculty, 
-            year, 
-            semester, 
-            ROUND(fte::numeric, 2) as fte 
-        FROM dep_faculty
+            f.honorific, 
+            f.first, 
+            f.last, 
+            cs.year, 
+            cs.semester,
+            cs.course_code,
+            cs.ch,
+            cs.enrollment
+        FROM 
+            dep_faculty f
+        JOIN 
+            dep_course_sched cs ON f.id = cs.instructor
+        ORDER BY 
+            f.last, f.first, cs.year, cs.semester
         """
         
         cursor.execute(query)
         results = cursor.fetchall()
 
-        print("<h2>FTE Dashboard</h2>")
+        print("<h2>Faculty FTE Calculations</h2>")
         print("<table>")
-        
-        # headers
-        if results:
+        print("<tr>")
+        print("<th>Name</th>")
+        print("<th>Year</th>")
+        print("<th>Semester</th>")
+        print("<th>Course Code</th>")
+        print("<th>CH</th>")
+        print("<th>Enrollment</th>")
+        print("<th>FTE</th>")
+        print("</tr>")
+
+        for row in results:
+            # Unpack the row
+            honorific, first, last, year, semester, course_code, ch, enrollment = row
+
+            # Combine name 
+            name = f"{honorific} {first} {last}".strip()
+
+            # Default FTE divisor
+            fte_divisor = 186.23
+
+            # Determine FTE divisor based on course code
+            if course_code.startswith('CSCI'):
+                fte_divisor = 186.23 if 'G' in course_code else 406.24
+            elif course_code.startswith('SENG'):
+                fte_divisor = 90.17 if 'G' in course_code else 232.25
+            elif course_code.startswith('DASC'):
+                fte_divisor = 186.23
+
+            # Calculate FTE
+            fte = (ch * enrollment) / fte_divisor
+
             print("<tr>")
-            headers = ['Faculty', 'Year', 'Semester', 'FTE']
-            for header in headers:
-                print(f"<th>{header}</th>")
+            print(f"<td>{name}</td>")
+            print(f"<td>{year}</td>")
+            print(f"<td>{semester}</td>")
+            print(f"<td>{course_code}</td>")
+            print(f"<td>{ch}</td>")
+            print(f"<td>{enrollment}</td>")
+            print(f"<td>{fte:.2f}</td>")
             print("</tr>")
 
-            # rows
-            for row in results:
-                print("<tr>")
-                for value in row:
-                    print(f"<td>{value if value is not None else 'N/A'}</td>")
-                print("</tr>")
-        else:
-            # no results found
-            print("<tr><td colspan='4'>No FTE records found.</td></tr>")
-        
         print("</table>")
 
     except Exception as e:
