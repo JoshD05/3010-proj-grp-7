@@ -100,98 +100,24 @@ print("""
 """)
 
 def create_fte_table():
-
-    query_string = os.environ.get('QUERY_STRING', '')
-    
-    params = {}
-    for param in query_string.split('&'):
-        if '=' in param:
-            key, value = param.split('=')
-            params[key] = value
-    
-    search_term = params.get('search', '').strip()
-    sort_by = params.get('sort_by', '').strip()
-    sort_order = params.get('sort_order', 'ASC').strip().upper()
-
     try:
-        # Validate sort columns
-        valid_sort_columns = ['faculty', 'year', 'semester', 'fte']
-        if sort_by and sort_by not in valid_sort_columns:
-            sort_by = None
-
-        if search_term:
-            # Search across columns
-            query = """
-            SELECT 
-                faculty, 
-                year, 
-                semester, 
-                ROUND(fte::numeric, 2) as fte 
-            FROM faculty_fte 
-            WHERE 
-                cast(faculty as text) ILIKE %s OR 
-                cast(year as text) ILIKE %s OR
-                cast(semester as text) ILIKE %s
-            """
-            # sorting logic
-            if sort_by:
-                query += f" ORDER BY {sort_by} {sort_order}"
-            
-            search_param = f'%{search_term}%'
-            cursor.execute(query, 
-                (search_param,)*3
-            )
-            print(f"<h2>Search Results for '{search_term}'</h2>")
-        else:
-            #fetch all FTE records
-            query = """
-            SELECT 
-                faculty, 
-                year, 
-                semester, 
-                ROUND(fte::numeric, 2) as fte 
-            FROM faculty_fte
-            """
-            
-            # sorting
-            if sort_by:
-                query += f" ORDER BY {sort_by} {sort_order}"
-            
-            cursor.execute(query)
-            print("<h2>FTE Dashboard</h2>")
-
-        #search and sort form
-        print("""
-        <div class="search-container">
-            <form method="get" action="fte.py">
-                <input type="text" name="search" placeholder="Search FTE..." value="{0}">
-                <select name="sort_by">
-                    <option value="">Sort By...</option>
-                    <option value="faculty" {1}>Faculty</option>
-                    <option value="year" {2}>Year</option>
-                    <option value="semester" {3}>Semester</option>
-                    <option value="fte" {4}>FTE</option>
-                </select>
-                <select name="sort_order">
-                    <option value="ASC" {5}>Ascending</option>
-                    <option value="DESC" {6}>Descending</option>
-                </select>
-                <input type="submit" value="Search/Sort">
-            </form>
-        </div>
-        """.format(
-            search_term or '', 
-            'selected' if sort_by == 'faculty' else '',
-            'selected' if sort_by == 'year' else '',
-            'selected' if sort_by == 'semester' else '',
-            'selected' if sort_by == 'fte' else '',
-            'selected' if sort_order == 'ASC' else '',
-            'selected' if sort_order == 'DESC' else ''
-        ))
-
-        # results
+        # Fetch all FTE records
+        query = """
+        SELECT 
+            faculty, 
+            year, 
+            semester, 
+            ROUND(fte::numeric, 2) as fte 
+        FROM faculty_fte
+        """
+        
+        cursor.execute(query)
         results = cursor.fetchall()
+
+        print("<h2>FTE Dashboard</h2>")
         print("<table>")
+        
+        # headers
         if results:
             print("<tr>")
             headers = ['Faculty', 'Year', 'Semester', 'FTE']
@@ -214,7 +140,6 @@ def create_fte_table():
     except Exception as e:
         print(f"<p>Error: {e}</p>")
 
-# FTE table
 create_fte_table()
 
 cursor.close()
