@@ -23,7 +23,7 @@ print("""
             background-color: #1E90FF;
             color: white;
             display: flex;
-            justify-content: flex-start;
+            justify-content: space-between;
             align-items: center;
             padding: 10px 20px;
         }
@@ -89,8 +89,6 @@ print("""
         <div class="navbar-links">
             <a href="csdashboard.py">Home</a>
             <a href="faculty.py">Faculty</a>
-            <a href="courses.py">Courses</a>
-            <a href="fte.py">FTE</a>
         </div>
     </div>
 """)
