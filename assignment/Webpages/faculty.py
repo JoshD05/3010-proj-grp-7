@@ -103,31 +103,33 @@ def create_faculty_table():
     """
     Create a view of the faculty table with search and sort capability
     """
-    # Check if there's a search parameter in the URL
-    import os
-    query_string = os.environ.get('QUERY_STRING', '')
-    
-    # Parse parameters
-    params = {}
-    for param in query_string.split('&'):
-        if '=' in param:
-            key, value = param.split('=')
-            params[key] = value
-    
-    # Extract search term and sorting parameters
-    search_term = params.get('search', '').strip()
-    sort_by = params.get('sort_by', '').strip()
-    sort_order = params.get('sort_order', 'ASC').strip().upper()
+    search_term = ''
+    sort_by = ''
+    sort_order = 'ASC'
+
+    query_string = ''
+    query_string = query_string.replace('%20', ' ')
+
+    search_params = {}
+    if '&' in query_string:
+        params = query_string.split('&')
+        for param in params:
+            if '=' in param:
+                key, value = param.split('=')
+                search_params[key] = value
+
+    # search parameters
+    search_term = search_params.get('search', '').strip()
+    sort_by = search_params.get('sort_by', '').strip()
+    sort_order = search_params.get('sort_order', 'ASC').strip().upper()
 
     try:
-        # Validate sort columns
+        # sort columns
         valid_sort_columns = ['last', 'rank', 'first', 'id']
         if sort_by and sort_by not in valid_sort_columns:
             sort_by = None
 
-        # Prepare the query based on whether there's a search term
         if search_term:
-            # Search across all columns
             query = """
             SELECT * FROM dep_faculty 
             WHERE 
@@ -144,7 +146,6 @@ def create_faculty_table():
                 cast(remarks as text) ILIKE %s OR
                 cast(currently_employed as text) ILIKE %s
             """
-            # Add sorting if specified
             if sort_by:
                 query += f" ORDER BY {sort_by} {sort_order}"
             
@@ -154,17 +155,14 @@ def create_faculty_table():
             )
             print(f"<h2>Search Results for '{search_term}'</h2>")
         else:
-            # If no search term, fetch all faculty
             query = "SELECT * FROM dep_faculty"
             
-            # Add sorting if specified
             if sort_by:
                 query += f" ORDER BY {sort_by} {sort_order}"
             
             cursor.execute(query)
             print("<h2>Faculty Directory</h2>")
 
-        # Add search and sort form
         print("""
         <div class="search-container">
             <form method="get" action="faculty.py">
@@ -191,27 +189,21 @@ def create_faculty_table():
             'selected' if sort_order == 'DESC' else ''
         ))
 
-        # Fetch results
         results = cursor.fetchall()
-
-        # Print table
         print("<table>")
         
-        # Print headers
         if results:
             print("<tr>")
             for col in cursor.description:
                 print(f"<th>{col.name}</th>")
             print("</tr>")
 
-            # Print rows
             for row in results:
                 print("<tr>")
                 for value in row:
                     print(f"<td>{value if value is not None else 'N/A'}</td>")
                 print("</tr>")
         else:
-            # If no results found
             print(f"<tr><td colspan='{len(cursor.description)}'>No faculty members found.</td></tr>")
         
         print("</table>")
@@ -219,10 +211,8 @@ def create_faculty_table():
     except Exception as e:
         print(f"<p>Error: {e}</p>")
 
-# Display faculty table
 create_faculty_table()
 
-# Close connection
 cursor.close()
 conn.close()
 

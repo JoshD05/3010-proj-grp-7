@@ -108,7 +108,7 @@ def create_fte_table():
             year, 
             semester, 
             ROUND(fte::numeric, 2) as fte 
-        FROM faculty_fte
+        FROM dep_faculty
         """
         
         cursor.execute(query)
