@@ -5,7 +5,7 @@ import cgi
 
 # Connect to the database
 conn = psycopg2.connect("host=192.168.56.30 dbname=dashboard user=webuser1 password=student")
-cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)  # Use DictCursor to get column names
+cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
 
 print("Content-type: text/html\n\n")
 print("""
@@ -101,10 +101,7 @@ print("""
 """)
 
 def create_faculty_table():
-    """
-    Create a view of the faculty table with search and sort capability using Python objects
-    """
-    # Parse query parameters using cgi instead of os
+    # Parsing using cgi over os
     form = cgi.FieldStorage()
     
     search_term = form.getvalue('search', '').strip()
@@ -116,7 +113,7 @@ def create_faculty_table():
         if sort_by and sort_by not in valid_sort_columns:
             sort_by = 'last'  # Default to last name if invalid sort field
 
-        # Construct base query - we'll sort the results in Python
+        # sort the results in Python
         if search_term:
             query = """
             SELECT * FROM dep_faculty 
@@ -142,11 +139,11 @@ def create_faculty_table():
             cursor.execute(query)
             print("<h2>Faculty Directory</h2>")
 
-        # Fetch all results as dictionaries
+        # results as dictionaries
         results = cursor.fetchall()
         columns = [desc[0] for desc in cursor.description]
         
-        # Convert database results to list of dictionaries for easier manipulation
+        # list of dictionaries for easier manipulation
         faculty_list = []
         for row in results:
             faculty_dict = {}
@@ -154,16 +151,15 @@ def create_faculty_table():
                 faculty_dict[column] = row[i]
             faculty_list.append(faculty_dict)
         
-        # Sort the faculty list in Python
+        # Sort
         if sort_by:
             reverse_sort = sort_order == 'DESC'
-            # Handle None values by placing them at the end regardless of sort order
+
             faculty_list.sort(
                 key=lambda x: (x[sort_by] is None, x[sort_by] if x[sort_by] is not None else ""),
                 reverse=reverse_sort
             )
 
-        # Display search and sort form
         print("""
         <div class="search-container">
             <form method="get" action="faculty.py">
@@ -190,7 +186,7 @@ def create_faculty_table():
             'selected' if sort_order == 'DESC' else ''
         ))
 
-        # Display results table
+        # results table
         if faculty_list:
             print("<table>")
             # Headers
