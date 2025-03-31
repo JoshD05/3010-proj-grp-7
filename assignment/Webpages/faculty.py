@@ -1,10 +1,11 @@
 #!/usr/bin/python3
 import psycopg2
 import psycopg2.extras
-import os
+import cgi
 
+# Connect to the database
 conn = psycopg2.connect("host=192.168.56.30 dbname=dashboard user=webuser1 password=student")
-cursor = conn.cursor()
+cursor = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)  # Use DictCursor to get column names
 
 print("Content-type: text/html\n\n")
 print("""
@@ -101,25 +102,21 @@ print("""
 
 def create_faculty_table():
     """
-    Create a view of the faculty table with search and sort capability
+    Create a view of the faculty table with search and sort capability using Python objects
     """
-    query_string = os.environ.get('QUERY_STRING', '')
+    # Parse query parameters using cgi instead of os
+    form = cgi.FieldStorage()
     
-    params = {}
-    for param in query_string.split('&'):
-        if '=' in param:
-            key, value = param.split('=')
-            params[key] = value
-    
-    search_term = params.get('search', '').strip()
-    sort_by = params.get('sort_by', '').strip()
-    sort_order = params.get('sort_order', 'ASC').strip().upper()
+    search_term = form.getvalue('search', '').strip()
+    sort_by = form.getvalue('sort_by', '').strip()
+    sort_order = form.getvalue('sort_order', 'ASC').strip().upper()
 
     try:
         valid_sort_columns = ['last', 'rank', 'first', 'id']
         if sort_by and sort_by not in valid_sort_columns:
-            sort_by = None
+            sort_by = 'last'  # Default to last name if invalid sort field
 
+        # Construct base query - we'll sort the results in Python
         if search_term:
             query = """
             SELECT * FROM dep_faculty 
@@ -137,42 +134,55 @@ def create_faculty_table():
                 cast(remarks as text) ILIKE %s OR
                 cast(currently_employed as text) ILIKE %s
             """
-            if sort_by:
-                query += f" ORDER BY {sort_by} {sort_order}"
-            
             search_param = f'%{search_term}%'
-            cursor.execute(query, 
-                (search_param,)*12
-            )
+            cursor.execute(query, (search_param,)*12)
             print(f"<h2>Search Results for '{search_term}'</h2>")
         else:
             query = "SELECT * FROM dep_faculty"
-            
-            if sort_by:
-                query += f" ORDER BY {sort_by} {sort_order}"
-            
             cursor.execute(query)
             print("<h2>Faculty Directory</h2>")
 
+        # Fetch all results as dictionaries
+        results = cursor.fetchall()
+        columns = [desc[0] for desc in cursor.description]
+        
+        # Convert database results to list of dictionaries for easier manipulation
+        faculty_list = []
+        for row in results:
+            faculty_dict = {}
+            for i, column in enumerate(columns):
+                faculty_dict[column] = row[i]
+            faculty_list.append(faculty_dict)
+        
+        # Sort the faculty list in Python
+        if sort_by:
+            reverse_sort = sort_order == 'DESC'
+            # Handle None values by placing them at the end regardless of sort order
+            faculty_list.sort(
+                key=lambda x: (x[sort_by] is None, x[sort_by] if x[sort_by] is not None else ""),
+                reverse=reverse_sort
+            )
+
+        # Display search and sort form
         print("""
         <div class="search-container">
             <form method="get" action="faculty.py">
-                <input type="text" name="search" placeholder="Search faculty..." value="{0}">
+                <input type="text" name="search" placeholder="Search faculty..." value="{}">
                 <select name="sort_by">
                     <option value="">Sort By...</option>
-                    <option value="last" {1}>Last Name</option>
-                    <option value="rank" {2}>Rank</option>
-                    <option value="first" {3}>First Name</option>
+                    <option value="last" {}>Last Name</option>
+                    <option value="rank" {}>Rank</option>
+                    <option value="first" {}>First Name</option>
                 </select>
                 <select name="sort_order">
-                    <option value="ASC" {4}>Ascending</option>
-                    <option value="DESC" {5}>Descending</option>
+                    <option value="ASC" {}>Ascending</option>
+                    <option value="DESC" {}>Descending</option>
                 </select>
                 <input type="submit" value="Search/Sort">
             </form>
         </div>
         """.format(
-            search_term or '', 
+            search_term, 
             'selected' if sort_by == 'last' else '',
             'selected' if sort_by == 'rank' else '',
             'selected' if sort_by == 'first' else '',
@@ -180,31 +190,29 @@ def create_faculty_table():
             'selected' if sort_order == 'DESC' else ''
         ))
 
-        # results
-        results = cursor.fetchall()
-        print("<table>")
-        
-        # headers
-        if results:
+        # Display results table
+        if faculty_list:
+            print("<table>")
+            # Headers
             print("<tr>")
-            for col in cursor.description:
-                print(f"<th>{col.name}</th>")
+            for column in columns:
+                print(f"<th>{column}</th>")
             print("</tr>")
 
-            # rows
-            for row in results:
+            # Rows
+            for faculty in faculty_list:
                 print("<tr>")
-                for value in row:
+                for column in columns:
+                    value = faculty[column]
                     print(f"<td>{value if value is not None else 'N/A'}</td>")
                 print("</tr>")
+            print("</table>")
         else:
-            # no results found
-            print(f"<tr><td colspan='{len(cursor.description)}'>No faculty members found.</td></tr>")
-        
-        print("</table>")
+            print("<p>No faculty members found.</p>")
 
     except Exception as e:
         print(f"<p>Error: {e}</p>")
+
 create_faculty_table()
 
 cursor.close()
