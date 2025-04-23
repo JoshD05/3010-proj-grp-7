@@ -25,8 +25,10 @@ RUN /etc/init.d/postgresql start && \
 
 USER root
 
+# Configure PostgreSQL to accept connections
 RUN sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/14/main/postgresql.conf && \
-    echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/14/main/pg_hba.conf
+    echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/14/main/pg_hba.conf && \
+    echo "local all all md5" >> /etc/postgresql/14/main/pg_hba.conf
 
 # Set Apache ServerName
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
