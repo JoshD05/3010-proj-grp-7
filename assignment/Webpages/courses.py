@@ -93,7 +93,7 @@ print("""
             <a href="csdashboard.py">Home</a>
             <a href="faculty.py">Faculty</a>
             <a href="courses.py">Courses</a>
-            <a href="fte.py">FTE</a>
+            <a href="FTE.py">FTE</a>
         </div>
     </div>
 """)
