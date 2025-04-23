@@ -1322,14 +1322,14 @@ ALTER TABLE ONLY public.staff
 -- Name: TABLE staff; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT ALL ON TABLE public.staff TO student;
+
 
 
 --
 -- Name: SEQUENCE staff_id_seq; Type: ACL; Schema: public; Owner: postgres
 --
 
-GRANT SELECT,USAGE ON SEQUENCE public.staff_id_seq TO student;
+
 
 
 --
