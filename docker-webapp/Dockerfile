@@ -17,17 +17,19 @@ RUN apt-get update && apt-get install -y \
 # Install Python dependencies
 RUN pip3 install flask psycopg2-binary
 
+# Configure PostgreSQL authentication
+RUN sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/14/main/postgresql.conf && \
+    echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/14/main/pg_hba.conf && \
+    echo "local all all md5" >> /etc/postgresql/14/main/pg_hba.conf
+
+# Initialize PostgreSQL and set up user
 USER postgres
 RUN /etc/init.d/postgresql start && \
+    psql --command "ALTER USER postgres WITH PASSWORD 'student';" && \
     createdb webapp_db && \
     /etc/init.d/postgresql stop
 
 USER root
-
-# Configure PostgreSQL to accept connections
-RUN sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/14/main/postgresql.conf && \
-    echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/14/main/pg_hba.conf && \
-    echo "local all all md5" >> /etc/postgresql/14/main/pg_hba.conf
 
 # Set Apache ServerName
 RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
@@ -60,6 +62,10 @@ if [ -f /tmp/db_backup.sql ]; then\n\
   echo "Restoring database from backup"\n\
   su - postgres -c "psql -d webapp_db -f /tmp/db_backup.sql"\n\
 fi\n\
+# Ensure PostgreSQL is accepting connections\n\
+echo "local all postgres md5" > /etc/postgresql/14/main/pg_hba.conf\n\
+echo "host all all 127.0.0.1/32 md5" >> /etc/postgresql/14/main/pg_hba.conf\n\
+service postgresql restart\n\
 service apache2 start\n\
 echo "Apache started"\n\
 # Keep container running\n\
