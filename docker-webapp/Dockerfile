@@ -19,14 +19,17 @@ RUN pip3 install flask psycopg2-binary
 
 USER postgres
 RUN /etc/init.d/postgresql start && \
-    psql --command "ALTER USER postgres WITH PASSWORD 'student';" && \
-    createdb -O postgres webapp_db && \
+    psql --command "CREATE USER student WITH SUPERUSER PASSWORD 'student';" && \
+    createdb -O student webapp_db && \
     /etc/init.d/postgresql stop
 
 USER root
 
 RUN sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/" /etc/postgresql/14/main/postgresql.conf && \
     echo "host all all 0.0.0.0/0 md5" >> /etc/postgresql/14/main/pg_hba.conf
+
+# Set Apache ServerName
+RUN echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
 # Create application directory
 RUN mkdir -p /var/www/webapp
@@ -54,7 +57,7 @@ service postgresql start\n\
 echo "PostgreSQL started"\n\
 if [ -f /tmp/db_backup.sql ]; then\n\
   echo "Restoring database from backup"\n\
-  su - postgres -c "psql -U postgres -d webapp_db -f /tmp/db_backup.sql"\n\
+  su - postgres -c "psql -U student -d webapp_db -f /tmp/db_backup.sql"\n\
 fi\n\
 service apache2 start\n\
 echo "Apache started"\n\
