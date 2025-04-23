@@ -19,8 +19,7 @@ RUN pip3 install flask psycopg2-binary
 
 USER postgres
 RUN /etc/init.d/postgresql start && \
-    psql --command "CREATE USER student WITH SUPERUSER PASSWORD 'student';" && \
-    createdb -O student webapp_db && \
+    createdb webapp_db && \
     /etc/init.d/postgresql stop
 
 USER root
@@ -59,7 +58,7 @@ service postgresql start\n\
 echo "PostgreSQL started"\n\
 if [ -f /tmp/db_backup.sql ]; then\n\
   echo "Restoring database from backup"\n\
-  su - postgres -c "psql -U student -d webapp_db -f /tmp/db_backup.sql"\n\
+  su - postgres -c "psql -d webapp_db -f /tmp/db_backup.sql"\n\
 fi\n\
 service apache2 start\n\
 echo "Apache started"\n\
