@@ -62,7 +62,7 @@ echo "Apache started"\n\
 tail -f /dev/null' > /start.sh && \
 chmod +x /start.sh
 
-EXPOSE 80    # Apache
-EXPOSE 5432  # PostgreSQL
+EXPOSE 80
+EXPOSE 5432
 
 CMD ["/start.sh"]
