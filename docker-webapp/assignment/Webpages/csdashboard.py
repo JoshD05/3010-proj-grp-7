@@ -3,7 +3,7 @@ import psycopg2
 import psycopg2.extras
 
 # Database connection
-conn = psycopg2.connect("host=localhost dbname=dashboard user=postgres password=student")
+conn = psycopg2.connect("host=localhost dbname=dashboard user=webuser1 password=student")
 cursor = conn.cursor()
 
 print("Content-type: text/html\n\n")
