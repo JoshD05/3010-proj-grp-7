@@ -137,17 +137,6 @@ def calculate_fte():
         print("<div class='content'>")
         print("<h2>FTE Calculations</h2>")
         
-        print("<div class='info-box'>")
-        print("<h3>FTE Calculation Formula</h3>")
-        print("<ul>")
-        print("<li>CSCI Graduate: (CH * Enrollment) / 186.23</li>")
-        print("<li>CSCI Undergraduate: (CH * Enrollment) / 406.24</li>")
-        print("<li>SENG Graduate: (CH * Enrollment) / 90.17</li>")
-        print("<li>SENG Undergraduate: (CH * Enrollment) / 232.25</li>")
-        print("<li>DASC: (CH * Enrollment) / 186.23</li>")
-        print("</ul>")
-        print("</div>")
-        
         print("<table>")
         
         # Table headers
