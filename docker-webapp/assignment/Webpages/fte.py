@@ -1,5 +1,6 @@
 #!/usr/bin/python3
 import psycopg2
+import psycopg2.extras
 
 conn = psycopg2.connect("host=localhost dbname=dashboard user=webuser1 password=student")
 cursor = conn.cursor()
@@ -79,6 +80,13 @@ print("""
             overflow-x: auto;
             border-radius: 5px;
         }
+        .info-box {
+            background-color: #e8f4f8;
+            border-left: 4px solid #1E90FF;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
@@ -100,57 +108,74 @@ def calculate_fte():
     try:
         query = """
         SELECT 
-            f.honorific || ' ' || f.first || ' ' || f.last AS professor_name,
-            cs.year,
-            cs.semester,
-            SUM(
-                CASE 
-                    WHEN c.prefix = 'CSCI' AND c.number >= 5000 THEN (c.CH * c.enrollment)/186.23
-                    WHEN c.prefix = 'CSCI' AND c.number < 5000 THEN (c.CH * c.enrollment)/406.24
-                    WHEN c.prefix = 'SENG' AND c.number >= 5000 THEN (c.CH * c.enrollment)/90.17
-                    WHEN c.prefix = 'SENG' AND c.number < 5000 THEN (c.CH * c.enrollment)/232.25
-                    WHEN c.prefix = 'DASC' THEN (c.CH * c.enrollment)/186.23
-                    ELSE 0
-                END
-            ) AS fte
+            cs.prefix,
+            cs.number,
+            c.title,
+            c.ch,
+            cs.enrollment,
+            CASE 
+                WHEN cs.prefix = 'CSCI' AND cs.number >= 5000 THEN (c.ch * cs.enrollment)/186.23
+                WHEN cs.prefix = 'CSCI' AND cs.number < 5000 THEN (c.ch * cs.enrollment)/406.24
+                WHEN cs.prefix = 'SENG' AND cs.number >= 5000 THEN (c.ch * cs.enrollment)/90.17
+                WHEN cs.prefix = 'SENG' AND cs.number < 5000 THEN (c.ch * cs.enrollment)/232.25
+                WHEN cs.prefix = 'DASC' THEN (c.ch * cs.enrollment)/186.23
+                ELSE 0
+            END AS fte
         FROM 
-            department_course_directors dcd
-        JOIN 
-            dep_faculty f ON dcd.coursedirectorid = f.id
-        JOIN 
-            dep_course_sched cs ON dcd.prefix = cs.prefix AND dcd.number = cs.number
+            dep_course_sched cs
         JOIN 
             dep_courses c ON cs.prefix = c.prefix AND cs.number = c.number
-        GROUP BY 
-            f.honorific, f.first, f.last, cs.year, cs.semester
+        WHERE 
+            cs.year = (SELECT MAX(year) FROM dep_course_sched)
+            AND cs.semester = (SELECT MAX(semester) FROM dep_course_sched WHERE year = (SELECT MAX(year) FROM dep_course_sched))
         ORDER BY 
-            cs.year DESC, cs.semester, f.last, f.first
+            cs.prefix, cs.number
         """
         
         cursor.execute(query)
         
         print("<div class='content'>")
-        print("<h2>Faculty FTE Calculations</h2>")
+        print("<h2>FTE Calculations</h2>")
+        
+        print("<div class='info-box'>")
+        print("<h3>FTE Calculation Formula</h3>")
+        print("<ul>")
+        print("<li>CSCI Graduate: (CH * Enrollment) / 186.23</li>")
+        print("<li>CSCI Undergraduate: (CH * Enrollment) / 406.24</li>")
+        print("<li>SENG Graduate: (CH * Enrollment) / 90.17</li>")
+        print("<li>SENG Undergraduate: (CH * Enrollment) / 232.25</li>")
+        print("<li>DASC: (CH * Enrollment) / 186.23</li>")
+        print("</ul>")
+        print("</div>")
         
         print("<table>")
         
         # Table headers
         print("<tr>")
-        headers = ['Professor Name', 'Year', 'Semester', 'FTE']
+        headers = ['Course', 'Title', 'Credit Hours', 'Enrollment', 'FTE']
         for header in headers:
             print(f"<th>{header}</th>")
         print("</tr>")
         
         # Rows
         results = cursor.fetchall()
+        total_fte = 0
         for row in results:
             print("<tr>")
-            # Format first three columns normally
-            for i in range(3):
-                print(f"<td>{row[i] if row[i] is not None else 'N/A'}</td>")
-            # Format FTE with 2 decimal places
-            print(f"<td>{row[3]:.2f if row[3] is not None else 'N/A'}</td>")
+            course = f"{row[0]} {row[1]}"
+            print(f"<td>{course}</td>")
+            print(f"<td>{row[2]}</td>")
+            print(f"<td>{row[3]}</td>")
+            print(f"<td>{row[4]}</td>")
+            print(f"<td>{row[5]:.4f}</td>")
+            total_fte += row[5]
             print("</tr>")
+        
+        # Total row
+        print("<tr style='font-weight: bold; background-color: #e8f4f8;'>")
+        print("<td colspan='4'>Total FTE</td>")
+        print(f"<td>{total_fte:.4f}</td>")
+        print("</tr>")
         
         print("</table>")
         print("</div>")
