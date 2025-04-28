@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import psycopg2
 import psycopg2.extras
+import cgi
 
 conn = psycopg2.connect("host=localhost dbname=dashboard user=webuser1 password=student")
 cursor = conn.cursor()
@@ -80,12 +81,9 @@ print("""
             overflow-x: auto;
             border-radius: 5px;
         }
-        .info-box {
-            background-color: #e8f4f8;
-            border-left: 4px solid #1E90FF;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
+        .search-container {
+            margin-bottom: 20px;
+            text-align: center;
         }
     </style>
 </head>
@@ -105,6 +103,11 @@ def calculate_fte():
     """
     Calculate and display faculty FTE based on courses taught
     """
+    form = cgi.FieldStorage()
+    faculty_filter = form.getvalue('faculty', '').strip()
+    year_filter = form.getvalue('year', '').strip()
+    semester_filter = form.getvalue('semester', '').strip()
+
     try:
         query = """
         SELECT 
@@ -126,16 +129,37 @@ def calculate_fte():
         JOIN 
             dep_courses c ON cs.prefix = c.prefix AND cs.number = c.number
         WHERE 
-            cs.year = (SELECT MAX(year) FROM dep_course_sched)
-            AND cs.semester = (SELECT MAX(semester) FROM dep_course_sched WHERE year = (SELECT MAX(year) FROM dep_course_sched))
-        ORDER BY 
-            cs.prefix, cs.number
+            1=1
         """
+        params = []
+
+        if faculty_filter:
+            query += " AND cs.instructor ILIKE %s"
+            params.append(f'%{faculty_filter}%')
+        if year_filter:
+            query += " AND cs.year = %s"
+            params.append(year_filter)
+        if semester_filter:
+            query += " AND cs.semester ILIKE %s"
+            params.append(f'%{semester_filter}%')
+
+        query += " ORDER BY cs.prefix, cs.number"
         
-        cursor.execute(query)
+        cursor.execute(query, params)
         
         print("<div class='content'>")
         print("<h2>FTE Calculations</h2>")
+        
+        print("""
+        <div class="search-container">
+            <form method="get" action="fte.py">
+                <input type="text" name="faculty" placeholder="Filter by faculty..." value="{}">
+                <input type="text" name="year" placeholder="Filter by year..." value="{}">
+                <input type="text" name="semester" placeholder="Filter by semester..." value="{}">
+                <input type="submit" value="Search">
+            </form>
+        </div>
+        """.format(faculty_filter, year_filter, semester_filter))
         
         print("<table>")
         
