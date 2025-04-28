@@ -150,8 +150,13 @@ def calculate_fte():
             query += " AND (f.honorific || ' ' || f.first || ' ' || f.last) ILIKE %s"
             params.append(f'%{faculty_filter}%')
         if year_filter:
-            query += " AND cs.year = %s"
-            params.append(year_filter)
+            try:
+                year = int(year_filter)
+                query += " AND cs.year = %s"
+                params.append(year)
+            except ValueError:
+                print("<p>Error: Year must be a number</p>")
+                return
         if semester_filter:
             query += " AND cs.semester ILIKE %s"
             params.append(f'%{semester_filter}%')
