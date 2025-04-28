@@ -3,6 +3,23 @@ import psycopg2
 import psycopg2.extras
 import cgi
 
+class FTECalculator:
+    @staticmethod
+    def calculate_fte(prefix, number, ch, enrollment):
+        if prefix == 'CSCI':
+            if number >= 5000:
+                return (ch * enrollment) / 186.23
+            else:
+                return (ch * enrollment) / 406.24
+        elif prefix == 'SENG':
+            if number >= 5000:
+                return (ch * enrollment) / 90.17
+            else:
+                return (ch * enrollment) / 232.25
+        elif prefix == 'DASC':
+            return (ch * enrollment) / 186.23
+        return 0
+
 conn = psycopg2.connect("host=localhost dbname=dashboard user=webuser1 password=student")
 cursor = conn.cursor()
 
@@ -114,22 +131,16 @@ def calculate_fte():
             f.honorific || ' ' || f.first || ' ' || f.last AS faculty_name,
             cs.year,
             cs.semester,
-            SUM(
-                CASE 
-                    WHEN cs.prefix = 'CSCI' AND cs.number >= 5000 THEN (c.ch * cs.enrollment)/186.23
-                    WHEN cs.prefix = 'CSCI' AND cs.number < 5000 THEN (c.ch * cs.enrollment)/406.24
-                    WHEN cs.prefix = 'SENG' AND cs.number >= 5000 THEN (c.ch * cs.enrollment)/90.17
-                    WHEN cs.prefix = 'SENG' AND cs.number < 5000 THEN (c.ch * cs.enrollment)/232.25
-                    WHEN cs.prefix = 'DASC' THEN (c.ch * cs.enrollment)/186.23
-                    ELSE 0
-                END
-            ) AS fte
+            cs.prefix,
+            cs.number,
+            c.ch,
+            cs.enrollment
         FROM 
             dep_course_sched cs
         JOIN 
             dep_courses c ON cs.prefix = c.prefix AND cs.number = c.number
         JOIN 
-            dep_faculty f ON cs.instructor = f.id
+            dep_faculty f ON cs.instructor::integer = f.id
         WHERE 
             1=1
         """
@@ -145,7 +156,7 @@ def calculate_fte():
             query += " AND cs.semester ILIKE %s"
             params.append(f'%{semester_filter}%')
 
-        query += " GROUP BY f.honorific, f.first, f.last, cs.year, cs.semester ORDER BY cs.year DESC, cs.semester, f.last, f.first"
+        query += " ORDER BY cs.year DESC, cs.semester, f.last, f.first"
         
         cursor.execute(query, params)
         
@@ -172,16 +183,33 @@ def calculate_fte():
             print(f"<th>{header}</th>")
         print("</tr>")
         
-        # Rows
+        # Process results
         results = cursor.fetchall()
-        total_fte = 0
+        processed_results = {}
         for row in results:
+            faculty_name = row[0]
+            year = row[1]
+            semester = row[2]
+            prefix = row[3]
+            number = row[4]
+            ch = row[5]
+            enrollment = row[6]
+            
+            key = (faculty_name, year, semester)
+            if key not in processed_results:
+                processed_results[key] = 0
+            
+            processed_results[key] += FTECalculator.calculate_fte(prefix, number, ch, enrollment)
+        
+        # Display results
+        total_fte = 0
+        for (faculty_name, year, semester), fte in processed_results.items():
             print("<tr>")
-            print(f"<td>{row[0] if row[0] is not None else 'N/A'}</td>")
-            print(f"<td>{row[1] if row[1] is not None else 'N/A'}</td>")
-            print(f"<td>{row[2] if row[2] is not None else 'N/A'}</td>")
-            print(f"<td>{row[3]:.4f}</td>")
-            total_fte += row[3]
+            print(f"<td>{faculty_name if faculty_name is not None else 'N/A'}</td>")
+            print(f"<td>{year if year is not None else 'N/A'}</td>")
+            print(f"<td>{semester if semester is not None else 'N/A'}</td>")
+            print(f"<td>{fte:.4f}</td>")
+            total_fte += fte
             print("</tr>")
         
         # Total row
