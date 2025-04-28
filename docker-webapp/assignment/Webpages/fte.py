@@ -111,7 +111,7 @@ def calculate_fte():
     try:
         query = """
         SELECT 
-            cs.instructor,
+            f.honorific || ' ' || f.first || ' ' || f.last AS faculty_name,
             cs.year,
             cs.semester,
             SUM(
@@ -128,13 +128,15 @@ def calculate_fte():
             dep_course_sched cs
         JOIN 
             dep_courses c ON cs.prefix = c.prefix AND cs.number = c.number
+        JOIN 
+            dep_faculty f ON cs.instructor = f.id
         WHERE 
             1=1
         """
         params = []
 
         if faculty_filter:
-            query += " AND cs.instructor ILIKE %s"
+            query += " AND (f.honorific || ' ' || f.first || ' ' || f.last) ILIKE %s"
             params.append(f'%{faculty_filter}%')
         if year_filter:
             query += " AND cs.year = %s"
@@ -143,7 +145,7 @@ def calculate_fte():
             query += " AND cs.semester ILIKE %s"
             params.append(f'%{semester_filter}%')
 
-        query += " GROUP BY cs.instructor, cs.year, cs.semester ORDER BY cs.year DESC, cs.semester, cs.instructor"
+        query += " GROUP BY f.honorific, f.first, f.last, cs.year, cs.semester ORDER BY cs.year DESC, cs.semester, f.last, f.first"
         
         cursor.execute(query, params)
         
