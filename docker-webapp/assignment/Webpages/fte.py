@@ -129,7 +129,7 @@ def calculate_fte():
         JOIN 
             dep_courses c ON cs.prefix = c.prefix AND cs.number = c.number
         JOIN 
-            dep_faculty f ON cs.instructor = f.id
+            dep_faculty f ON cs.instructor::integer = f.id
         WHERE 
             1=1
         """
