@@ -142,7 +142,7 @@ def calculate_fte():
         JOIN 
             dep_faculty f ON cs.instructor::integer = f.id
         WHERE 
-            1=1
+            cs.instructor ~ '^[0-9]+'
         """
         params = []
 
@@ -150,13 +150,8 @@ def calculate_fte():
             query += " AND (f.honorific || ' ' || f.first || ' ' || f.last) ILIKE %s"
             params.append(f'%{faculty_filter}%')
         if year_filter:
-            try:
-                year = int(year_filter)
-                query += " AND cs.year = %s"
-                params.append(year)
-            except ValueError:
-                print("<p>Error: Year must be a number</p>")
-                return
+            query += " AND cs.year = %s"
+            params.append(year_filter)
         if semester_filter:
             query += " AND cs.semester ILIKE %s"
             params.append(f'%{semester_filter}%')
