@@ -111,19 +111,19 @@ def calculate_fte():
     try:
         query = """
         SELECT 
-            cs.prefix,
-            cs.number,
-            c.title,
-            c.ch,
-            cs.enrollment,
-            CASE 
-                WHEN cs.prefix = 'CSCI' AND cs.number >= 5000 THEN (c.ch * cs.enrollment)/186.23
-                WHEN cs.prefix = 'CSCI' AND cs.number < 5000 THEN (c.ch * cs.enrollment)/406.24
-                WHEN cs.prefix = 'SENG' AND cs.number >= 5000 THEN (c.ch * cs.enrollment)/90.17
-                WHEN cs.prefix = 'SENG' AND cs.number < 5000 THEN (c.ch * cs.enrollment)/232.25
-                WHEN cs.prefix = 'DASC' THEN (c.ch * cs.enrollment)/186.23
-                ELSE 0
-            END AS fte
+            cs.instructor,
+            cs.year,
+            cs.semester,
+            SUM(
+                CASE 
+                    WHEN cs.prefix = 'CSCI' AND cs.number >= 5000 THEN (c.ch * cs.enrollment)/186.23
+                    WHEN cs.prefix = 'CSCI' AND cs.number < 5000 THEN (c.ch * cs.enrollment)/406.24
+                    WHEN cs.prefix = 'SENG' AND cs.number >= 5000 THEN (c.ch * cs.enrollment)/90.17
+                    WHEN cs.prefix = 'SENG' AND cs.number < 5000 THEN (c.ch * cs.enrollment)/232.25
+                    WHEN cs.prefix = 'DASC' THEN (c.ch * cs.enrollment)/186.23
+                    ELSE 0
+                END
+            ) AS fte
         FROM 
             dep_course_sched cs
         JOIN 
@@ -143,7 +143,7 @@ def calculate_fte():
             query += " AND cs.semester ILIKE %s"
             params.append(f'%{semester_filter}%')
 
-        query += " ORDER BY cs.prefix, cs.number"
+        query += " GROUP BY cs.instructor, cs.year, cs.semester ORDER BY cs.year DESC, cs.semester, cs.instructor"
         
         cursor.execute(query, params)
         
@@ -165,7 +165,7 @@ def calculate_fte():
         
         # Table headers
         print("<tr>")
-        headers = ['Course', 'Title', 'Credit Hours', 'Enrollment', 'FTE']
+        headers = ['Faculty', 'Year', 'Semester', 'FTE']
         for header in headers:
             print(f"<th>{header}</th>")
         print("</tr>")
@@ -175,18 +175,16 @@ def calculate_fte():
         total_fte = 0
         for row in results:
             print("<tr>")
-            course = f"{row[0]} {row[1]}"
-            print(f"<td>{course}</td>")
-            print(f"<td>{row[2]}</td>")
-            print(f"<td>{row[3]}</td>")
-            print(f"<td>{row[4]}</td>")
-            print(f"<td>{row[5]:.4f}</td>")
-            total_fte += row[5]
+            print(f"<td>{row[0] if row[0] is not None else 'N/A'}</td>")
+            print(f"<td>{row[1] if row[1] is not None else 'N/A'}</td>")
+            print(f"<td>{row[2] if row[2] is not None else 'N/A'}</td>")
+            print(f"<td>{row[3]:.4f}</td>")
+            total_fte += row[3]
             print("</tr>")
         
         # Total row
         print("<tr style='font-weight: bold; background-color: #e8f4f8;'>")
-        print("<td colspan='4'>Total FTE</td>")
+        print("<td colspan='3'>Total FTE</td>")
         print(f"<td>{total_fte:.4f}</td>")
         print("</tr>")
         
